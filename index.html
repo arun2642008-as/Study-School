@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Private Line</title>
+<link rel="preconnect" href=https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,6"https://fonts.googleapis.com">
+
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3a1526">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<div id="setup">
+  <h1>Private Line</h1>
+  <p>A line just for two. Enter your name — it's saved only to your own account.</p>
+  <input id="name-input" maxlength="20" placeholder="Your name" autocomplete="off">
+  <button id="name-save">Open the line</button>
+</div>
+
+<header>
+  <div>
+    <div class="hname me" id="my-name-display">You</div>
+    <div class="hsub">this device</div>
+  </div>
+  <div class="wire">
+    <div class="dash"></div>
+    <div class="pulse"></div>
+    <div class="dash"></div>
+  </div>
+  <div style="text-align:right;">
+    <div class="hname them" id="their-name-display">waiting…</div>
+    <div class="hsub">the other end</div>
+  </div>
+  <button id="ig-btn" title="Open Instagram">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/>
+    </svg>
+  </button>
+</header>
+
+<div id="feed"><div class="empty">No messages yet. Say hello — this line only exists between the two of you.</div></div>
+
+<div id="bar">
+  <div id="edit-banner">
+    <span>Editing message…</span>
+    <button id="edit-cancel">Cancel</button>
+  </div>
+  <div id="emoji-panel"></div>
+  <div id="attach-panel">
+    <label>Paste a link — image, video, audio, or file</label>
+    <input id="attach-url" placeholder="https://…">
+    <input id="attach-caption" placeholder="Caption (optional)">
+    <div class="row2">
+      <button class="cancel" id="attach-cancel">Cancel</button>
+      <button id="attach-send">Send</button>
+    </div>
+  </div>
+  <button class="icon" id="emoji-toggle">🙂</button>
+  <button class="icon" id="attach-toggle">📎</button>
+  <textarea id="text" rows="1" placeholder="Type a message…"></textarea>
+  <button id="send">➤</button>
+</div>
+
+<div id="overlay-bg"></div>
+<div id="msg-actions">
+  <div class="react-row" id="react-row"></div>
+  <div id="react-more-grid"></div>
+  <button class="act-btn" id="act-edit"><span class="ic">✏️</span> Edit message</button>
+  <button class="act-btn danger" id="act-delete"><span class="ic">🗑️</span> Delete message</button>
+  <button class="act-btn" id="act-cancel"><span class="ic">✕</span> Cancel</button>
+</div>
+
+<script src="script.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed:', err));
+    });
+  }
+</script>
+</body>
+</html>
