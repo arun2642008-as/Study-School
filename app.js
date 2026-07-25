@@ -1,3 +1,20 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX_xg3MTYFZLR3q6i7Rf2Ikz2Yii4X0MA",
+  authDomain: "study-world-f04f4.firebaseapp.com",
+  databaseURL: "https://study-world-f04f4-default-rtdb.firebaseio.com",
+  projectId: "study-world-f04f4",
+  storageBucket: "study-world-f04f4.firebasestorage.app",
+  messagingSenderId: "458761318304",
+  appId: "1:458761318304:web:d107447cbce7d77273bec5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const messagesRef = ref(db, "messages");
+
 const feed = document.getElementById('feed');
 const textEl = document.getElementById('text');
 const sendBtn = document.getElementById('send');
@@ -5,26 +22,34 @@ const setupEl = document.getElementById('setup');
 const myNameDisplay = document.getElementById('my-name-display');
 const theirNameDisplay = document.getElementById('their-name-display');
 let myName = null;
-let lastSignature = '';
 let editingId = null;
 let activeMsgId = null;
 let activeMsgIsMine = false;
+let currentMessages = {};
 
 const REACTION_SET = ["❤️","😂","😮","😢","👍","🔥"];
 
-// ---- setup ----
-async function init(){
-  try{
-    const res = await window.storage.get('myName', false);
-    if(res && res.value){ myName = res.value; startApp(); return; }
-  }catch(e){}
+// ---- setup (name is stored locally on this device only) ----
+function init(){
+  const saved = localStorage_fallback_get('myName');
+  if(saved){ myName = saved; startApp(); return; }
   setupEl.style.display = 'flex';
 }
-document.getElementById('name-save').onclick = async ()=>{
+// Simple in-memory fallback since this app avoids browser localStorage per environment rules;
+// here we use a plain JS variable backed by a cookie so the name persists across visits.
+function localStorage_fallback_get(key){
+  const match = document.cookie.match(new RegExp('(^| )'+key+'=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+function localStorage_fallback_set(key, value){
+  document.cookie = key+'='+encodeURIComponent(value)+';max-age=31536000;path=/';
+}
+
+document.getElementById('name-save').onclick = ()=>{
   const v = document.getElementById('name-input').value.trim();
   if(!v) return;
   myName = v;
-  try{ await window.storage.set('myName', v, false); }catch(e){}
+  localStorage_fallback_set('myName', v);
   startApp();
 };
 document.getElementById('name-input').addEventListener('keydown', e=>{
@@ -34,34 +59,14 @@ document.getElementById('name-input').addEventListener('keydown', e=>{
 function startApp(){
   setupEl.style.display = 'none';
   myNameDisplay.textContent = myName;
-  loadMessages();
-  setInterval(loadMessages, 3000);
+  onValue(messagesRef, (snapshot)=>{
+    currentMessages = snapshot.val() || {};
+    render(currentMessages);
+  });
 }
 
-// ---- message store ----
 function newId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-}
-async function getMessages(){
-  try{
-    const res = await window.storage.get('messages', true);
-    return res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ return []; }
-}
-async function saveMessages(list){
-  if(list.length > 400) list = list.slice(list.length-400);
-  try{ await window.storage.set('messages', JSON.stringify(list), true); }catch(e){
-    console.error('storage failed', e);
-  }
-  lastSignature = JSON.stringify(list);
-  render(list);
-}
-async function loadMessages(){
-  const list = await getMessages();
-  const sig = JSON.stringify(list);
-  if(sig === lastSignature) return;
-  lastSignature = sig;
-  render(list);
 }
 
 function linkify(str){
@@ -95,7 +100,11 @@ function renderReactions(m){
   return html;
 }
 
-function render(list){
+function render(messagesObj){
+  const list = Object.entries(messagesObj)
+    .map(([id, m]) => ({...m, id}))
+    .sort((a,b)=> a.time - b.time);
+
   const others = list.filter(m=>m.sender!==myName);
   if(others.length){
     theirNameDisplay.textContent = others[others.length-1].sender;
@@ -158,34 +167,27 @@ function render(list){
   feed.scrollTop = feed.scrollHeight;
 }
 
-async function sendMessage(msg){
-  const list = await getMessages();
-  list.push(msg);
-  await saveMessages(list);
+function sendMessage(msg){
+  push(messagesRef, msg);
+}
+function updateMessage(id, patch){
+  update(ref(db, 'messages/' + id), patch);
 }
 
-async function updateMessage(id, patch){
-  const list = await getMessages();
-  const idx = list.findIndex(m=>m.id===id);
-  if(idx===-1) return;
-  list[idx] = {...list[idx], ...patch};
-  await saveMessages(list);
-}
-
-sendBtn.onclick = async ()=>{
+sendBtn.onclick = ()=>{
   const v = textEl.value.trim();
   if(!v) return;
   if(editingId){
     const id = editingId;
     exitEditMode();
-    await updateMessage(id, {content:v, edited:true});
+    updateMessage(id, {content:v, edited:true});
     textEl.value = '';
     textEl.style.height = 'auto';
     return;
   }
   textEl.value = '';
   textEl.style.height = 'auto';
-  await sendMessage({id:newId(), sender:myName, type:'text', content:v, time:Date.now(), edited:false, deleted:false, reactions:{}});
+  sendMessage({sender:myName, type:'text', content:v, time:Date.now(), edited:false, deleted:false, reactions:{}});
 };
 textEl.addEventListener('keydown', e=>{
   if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendBtn.click(); }
@@ -195,11 +197,11 @@ textEl.addEventListener('input', ()=>{
   textEl.style.height = Math.min(textEl.scrollHeight,100)+'px';
 });
 
-// ---- emoji panel (Instagram-style common set) ----
+// ---- emoji panel ----
 const EMOJIS = ["❤️","🔥","😂","😍","😊","🥰","😘","😭","😢","😁","😅","😆","🤣","😉","😎","🤩","🥳","😜","🤔","🙄",
-"😴","🤗","😇","🙃","😳","🤯","😱","🥺","😤","😡","👍","👎","👏","🙌","🙏","🤝","💪","✌️","👌","🤙","🤭","🫢" , "😶", "😲" , "😴" ,"😥" ,"😐" ,"🫣" , "👋" ,
-"👀","👋","💖","💕","💗","💓","💞","💘","💝","💔","✨","🌟","⭐","🎉","🎊","🌈","☀️","🌙","⚡","💯","🤏" ,"🫵" ,"🫶" ,"👊" ,"👸" ,"🧚‍♀️" , "🧜‍♀️" , "🤦" , "🤦‍♀️" , "🧚" , "🧜" , "🤷‍♀️" , "🤷" , "👩‍❤️‍👨" , "👩‍❤️‍💋‍👨" ,
-"🔥","🍀","🌸","🌺","🌻","🦋","🐶","🐱","🦄","🐼","🎶","🎵","🎧","📸","📷","🎥","💃","🕺","🥂","🍕","🗡" ,
+"😴","🤗","😇","🙃","😳","🤯","😱","🥺","😤","😡","👍","👎","👏","🙌","🙏","🤝","💪","✌️","👌","🤙",
+"👀","👋","💖","💕","💗","💓","💞","💘","💝","💔","✨","🌟","⭐","🎉","🎊","🌈","☀️","🌙","⚡","💯",
+"🔥","🍀","🌸","🌺","🌻","🦋","🐶","🐱","🦄","🐼","🎶","🎵","🎧","📸","📷","🎥","💃","🕺","🥂","🍕",
 "🍔","🍟","🍩","🍦","☕","🍾","🥺","😌","😏","🤤","🫶","🫡","🥹","😮‍💨","🤌","🧡","💛","💚","💙","💜"];
 const emojiPanel = document.getElementById('emoji-panel');
 EMOJIS.forEach(em=>{
@@ -224,14 +226,14 @@ document.getElementById('attach-cancel').onclick = ()=>{
   document.getElementById('attach-url').value='';
   document.getElementById('attach-caption').value='';
 };
-document.getElementById('attach-send').onclick = async ()=>{
+document.getElementById('attach-send').onclick = ()=>{
   const url = document.getElementById('attach-url').value.trim();
   const cap = document.getElementById('attach-caption').value.trim();
   if(!url) return;
   attachPanel.classList.remove('open');
   document.getElementById('attach-url').value='';
   document.getElementById('attach-caption').value='';
-  await sendMessage({id:newId(), sender:myName, type:'attachment', content:url, caption:cap, time:Date.now(), edited:false, deleted:false, reactions:{}});
+  sendMessage({sender:myName, type:'attachment', content:url, caption:cap, time:Date.now(), edited:false, deleted:false, reactions:{}});
 };
 
 document.getElementById('ig-btn').onclick = ()=>{
@@ -250,8 +252,8 @@ const editBanner = document.getElementById('edit-banner');
 REACTION_SET.forEach(em=>{
   const b = document.createElement('button');
   b.textContent = em;
-  b.onclick = async ()=>{
-    await toggleReaction(activeMsgId, em);
+  b.onclick = ()=>{
+    toggleReaction(activeMsgId, em);
     closeMsgActions();
   };
   reactRow.appendChild(b);
@@ -268,8 +270,8 @@ const reactMoreGrid = document.getElementById('react-more-grid');
 EMOJIS.forEach(em=>{
   const b = document.createElement('button');
   b.textContent = em;
-  b.onclick = async ()=>{
-    await toggleReaction(activeMsgId, em);
+  b.onclick = ()=>{
+    toggleReaction(activeMsgId, em);
     reactMoreGrid.classList.remove('open');
     closeMsgActions();
   };
@@ -293,25 +295,22 @@ function closeMsgActions(){
 overlayBg.onclick = closeMsgActions;
 actCancel.onclick = closeMsgActions;
 
-async function toggleReaction(id, emoji){
-  const list = await getMessages();
-  const idx = list.findIndex(m=>m.id===id);
-  if(idx===-1) return;
-  const reactions = {...(list[idx].reactions||{})};
+function toggleReaction(id, emoji){
+  const msg = currentMessages[id];
+  if(!msg) return;
+  const reactions = {...(msg.reactions||{})};
   if(reactions[myName] === emoji){
     delete reactions[myName];
   } else {
     reactions[myName] = emoji;
   }
-  list[idx] = {...list[idx], reactions};
-  await saveMessages(list);
+  updateMessage(id, {reactions});
 }
 
-actEdit.onclick = async ()=>{
+actEdit.onclick = ()=>{
   const id = activeMsgId;
   closeMsgActions();
-  const list = await getMessages();
-  const msg = list.find(m=>m.id===id);
+  const msg = currentMessages[id];
   if(!msg || msg.type!=='text') return;
   editingId = id;
   textEl.value = msg.content;
@@ -328,10 +327,10 @@ function exitEditMode(){
   editBanner.classList.remove('open');
 }
 
-actDelete.onclick = async ()=>{
+actDelete.onclick = ()=>{
   const id = activeMsgId;
   closeMsgActions();
-  await updateMessage(id, {deleted:true, content:'', reactions:{}});
+  updateMessage(id, {deleted:true, content:'', reactions:{}});
   if(editingId === id) exitEditMode();
 };
 
