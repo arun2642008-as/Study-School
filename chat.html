@@ -27,28 +27,10 @@
       linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
     background-attachment:fixed;
   }
-  #setup{
-    position:fixed; inset:0; z-index:50;
-    background: radial-gradient(circle at 20% 20%, rgba(255,111,145,0.25), transparent 45%),
-      radial-gradient(circle at 80% 30%, rgba(224,80,122,0.2), transparent 50%),
-      linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
-    display:flex; align-items:center; justify-content:center; flex-direction:column; padding:24px; text-align:center;
-  }
-  #setup h1{font-family:'Fraunces',serif; font-weight:600; font-size:28px; margin:0 0 6px; color:var(--me);}
-  #setup p{color:var(--muted); font-size:14px; margin:0 0 22px; max-width:280px; line-height:1.5;}
-  #setup input{
-    background:var(--panel); border:1px solid var(--line); color:#fff; padding:12px 14px;
-    border-radius:8px; font-size:15px; width:240px; text-align:center; outline:none;
-  }
-  #setup input:focus{border-color:var(--me);}
-  #setup button{margin-top:14px; background:var(--me); color:var(--ink); border:none; padding:11px 26px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer;}
   header{
     display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
     background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0;
   }
-  .hname{font-family:'Fraunces',serif; font-size:15px; font-weight:600;}
-  .hname.them{color:var(--them);}
-  .hsub{font-size:10px; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; margin-top:2px;}
   .wire{flex:1; display:flex; align-items:center; justify-content:center; gap:4px; margin:0 14px;}
   .wire .dash{flex:1; height:1px; background:repeating-linear-gradient(90deg,var(--line) 0 4px, transparent 4px 8px);}
   .wire .pulse{width:7px; height:7px; border-radius:50%; background:var(--signal); flex-shrink:0; animation:pulse 2.4s infinite;}
@@ -115,6 +97,7 @@
 </style>
 </head>
 <body>
+
 <header>
   <button id="jee-nav-btn" title="Go to JEE">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -126,10 +109,6 @@
     <div class="dash"></div>
     <div class="pulse"></div>
     <div class="dash"></div>
-  </div>
-  <div style="text-align:right;">
-    <div class="hname them" id="their-name-display">waiting…</div>
-    <div class="hsub">the other end</div>
   </div>
   <button id="ig-btn" title="Open Instagram">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -191,9 +170,6 @@
   const feed = document.getElementById('feed');
   const textEl = document.getElementById('text');
   const sendBtn = document.getElementById('send');
-  const setupEl = document.getElementById('setup');
-  const theirNameDisplay = document.getElementById('their-name-display');
-  let myName = null;
   let editingId = null;
   let activeMsgId = null;
   let currentMessages = {};
@@ -205,28 +181,20 @@
   "🔥","🍀","🌸","🌺","🌻","🦋","🐶","🐱","🦄","🐼","🎶","🎵","🎧","📸","📷","🎥","💃","🕺","🥂","🍕",
   "🍔","🍟","🍩","🍦","☕","🍾","🥺","😌","😏","🤤","🫶","🫡","🥹","😮‍💨","🤌","🧡","💛","💚","💙","💜"];
 
+  // Invisible device identity — no name entry, no UI, just used internally
+  // to tell "your" messages apart from "their" messages for alignment/permissions.
   function getCookie(k){ const m = document.cookie.match(new RegExp('(^| )'+k+'=([^;]+)')); return m?decodeURIComponent(m[2]):null; }
   function setCookie(k,v){ document.cookie = k+'='+encodeURIComponent(v)+';max-age=31536000;path=/'; }
-
-  function init(){
-    const saved = getCookie('myName');
-    if(saved){ myName = saved; startApp(); return; }
-    setupEl.style.display = 'flex';
+  let myId = getCookie('deviceId');
+  if(!myId){
+    myId = 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    setCookie('deviceId', myId);
   }
-  document.getElementById('name-save').onclick = ()=>{
-    const v = document.getElementById('name-input').value.trim();
-    if(!v) return;
-    myName = v; setCookie('myName', v); startApp();
-  };
-  document.getElementById('name-input').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('name-save').click(); });
 
-  function startApp(){
-    setupEl.style.display = 'none';
-    onValue(messagesRef, (snapshot)=>{
-      currentMessages = snapshot.val() || {};
-      render(currentMessages);
-    });
-  }
+  onValue(messagesRef, (snapshot)=>{
+    currentMessages = snapshot.val() || {};
+    render(currentMessages);
+  });
 
   function linkify(str){ return str.replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -240,7 +208,7 @@
   function renderReactions(m){
     if(!m.reactions || Object.keys(m.reactions).length===0) return '';
     const counts = {};
-    Object.entries(m.reactions).forEach(([p, e])=>{ counts[e]=counts[e]||{count:0,mine:false}; counts[e].count++; if(p===myName) counts[e].mine=true; });
+    Object.entries(m.reactions).forEach(([p, e])=>{ counts[e]=counts[e]||{count:0,mine:false}; counts[e].count++; if(p===myId) counts[e].mine=true; });
     let html = '<div class="reactions">';
     Object.entries(counts).forEach(([e,d])=>{ html += `<span class="rchip${d.mine?' mine-r':''}">${e}<span class="rcount">${d.count>1?d.count:''}</span></span>`; });
     return html + '</div>';
@@ -248,13 +216,11 @@
 
   function render(messagesObj){
     const list = Object.entries(messagesObj).map(([id,m])=>({...m,id})).sort((a,b)=>a.time-b.time);
-    const others = list.filter(m=>m.sender!==myName);
-    if(others.length) theirNameDisplay.textContent = others[others.length-1].sender;
     if(list.length===0){ feed.innerHTML = '<div class="empty">No messages yet. Say hello — this line only exists between the two of you.</div>'; return; }
     feed.innerHTML = '';
     list.forEach(m=>{
       const row = document.createElement('div');
-      row.className = 'row ' + (m.sender===myName?'mine':'theirs');
+      row.className = 'row ' + (m.sender===myId?'mine':'theirs');
       const bubble = document.createElement('div');
       bubble.className = 'bubble' + (m.deleted?' deleted':'');
       if(m.deleted){
@@ -268,7 +234,7 @@
         else if(kind==='audio') bubble.innerHTML = (m.caption?escapeHtml(m.caption)+'<br>':'') + `<audio src="${m.content}" controls></audio>`;
         else bubble.innerHTML = (m.caption?escapeHtml(m.caption)+'<br>':'') + `<a class="card" href="${m.content}" target="_blank" rel="noopener"><span class="info"><b>${escapeHtml(m.content)}</b><span>Open link</span></span></a>`;
       }
-      if(!m.deleted) bubble.onclick = (e)=>{ e.stopPropagation(); openMsgActions(m.id, m.sender===myName); };
+      if(!m.deleted) bubble.onclick = (e)=>{ e.stopPropagation(); openMsgActions(m.id, m.sender===myId); };
       row.appendChild(bubble);
       if(!m.deleted){
         const rHtml = renderReactions(m);
@@ -277,7 +243,7 @@
       const meta = document.createElement('div');
       meta.className = 'meta';
       const d = new Date(m.time);
-      meta.innerHTML = escapeHtml(m.sender) + ' · ' + d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) + (m.edited && !m.deleted ? ' <i>· edited</i>' : '');
+      meta.innerHTML = d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) + (m.edited && !m.deleted ? ' <i>· edited</i>' : '');
       row.appendChild(meta);
       feed.appendChild(row);
     });
@@ -297,7 +263,7 @@
       return;
     }
     textEl.value=''; textEl.style.height='auto';
-    sendMessage({sender:myName, type:'text', content:v, time:Date.now(), edited:false, deleted:false, reactions:{}});
+    sendMessage({sender:myId, type:'text', content:v, time:Date.now(), edited:false, deleted:false, reactions:{}});
   };
   textEl.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendBtn.click(); } });
   textEl.addEventListener('input', ()=>{ textEl.style.height='auto'; textEl.style.height=Math.min(textEl.scrollHeight,100)+'px'; });
@@ -315,7 +281,7 @@
     if(!url) return;
     attachPanel.classList.remove('open');
     document.getElementById('attach-url').value=''; document.getElementById('attach-caption').value='';
-    sendMessage({sender:myName, type:'attachment', content:url, caption:cap, time:Date.now(), edited:false, deleted:false, reactions:{}});
+    sendMessage({sender:myId, type:'attachment', content:url, caption:cap, time:Date.now(), edited:false, deleted:false, reactions:{}});
   };
 
   document.getElementById('ig-btn').onclick = ()=>{ window.open('https://www.instagram.com/reels/', '_blank'); };
@@ -349,7 +315,7 @@
   function toggleReaction(id, emoji){
     const msg = currentMessages[id]; if(!msg) return;
     const reactions = {...(msg.reactions||{})};
-    if(reactions[myName]===emoji) delete reactions[myName]; else reactions[myName]=emoji;
+    if(reactions[myId]===emoji) delete reactions[myId]; else reactions[myId]=emoji;
     updateMessage(id, {reactions});
   }
 
@@ -369,8 +335,6 @@
     updateMessage(id, {deleted:true, content:'', reactions:{}});
     if(editingId===id) exitEditMode();
   };
-
-  init();
 </script>
 </body>
 </html>
