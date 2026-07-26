@@ -5,70 +5,82 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>JEE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3a1526">
+<meta name="theme-color" content="#2c3e2d">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
-    --ink:#2b0f1c;
-    --panel:#3a1526;
-    --panel-2:#42192c;
-    --line:#5c2439;
-    --cream:#fdece8;
-    --muted:#d99bb3;
-    --me:#e0507a;
-    --signal:#ff6f91;
+    --paper:#f6f1e4;
+    --paper-2:#efe6d0;
+    --ink:#2f2a20;
+    --muted:#8a7d63;
+    --navy:#2c3e2d;
+    --navy-2:#3d5540;
+    --line:#d8cbaa;
+    --gold:#b9862f;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
-    margin:0; color:var(--cream); font-family:'Inter',sans-serif;
+    margin:0; color:var(--ink); font-family:'Inter',sans-serif;
     display:flex; flex-direction:column; height:100vh; overflow:hidden;
     background:
-      radial-gradient(circle at 20% 20%, rgba(255,111,145,0.25), transparent 45%),
-      radial-gradient(circle at 80% 30%, rgba(224,80,122,0.2), transparent 50%),
-      linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(180,160,120,0.12) 28px),
+      var(--paper);
   }
   header{
     display:flex; align-items:center; justify-content:space-between;
-    padding:14px 18px; background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0;
+    padding:14px 18px; background:var(--navy); border-bottom:3px solid var(--gold); flex-shrink:0;
   }
   header h1{
-    font-family:'Fraunces',serif; font-size:20px; font-weight:600; margin:0; color:var(--me);
+    font-family:'Merriweather',serif; font-size:20px; font-weight:700; margin:0; color:var(--paper);
     letter-spacing:0.5px;
   }
   #research-btn{
-    display:flex; align-items:center; gap:6px; background:var(--panel-2); border:1px solid var(--line);
-    color:var(--cream); padding:8px 14px; border-radius:20px; cursor:pointer; font-size:13.5px;
+    display:flex; align-items:center; gap:6px; background:var(--navy-2); border:1px solid var(--gold);
+    color:var(--paper); padding:8px 14px; border-radius:20px; cursor:pointer; font-size:13.5px;
     font-family:'Inter',sans-serif; font-weight:600;
   }
-  #research-btn:hover{border-color:var(--me);}
+  #research-btn:hover{background:var(--gold); color:var(--navy);}
   #research-btn svg{width:16px; height:16px;}
-  main{flex:1; overflow-y:auto; padding:20px 16px 90px; display:flex; flex-direction:column; gap:14px;}
+  main{flex:1; overflow-y:auto; padding:20px 16px 96px; display:flex; flex-direction:column; gap:14px;}
   #status{font-size:12px; color:var(--muted); text-align:center;}
-  #doc-view{
-    background:#ffffff; color:#2b0f1c; border-radius:12px; padding:18px 16px; font-size:15px;
-    line-height:1.6; white-space:pre-wrap; word-break:break-word; min-height:200px;
-    border:1px solid var(--line);
+  #empty-state{
+    margin:auto; text-align:center; color:var(--muted); max-width:280px; font-size:14px; line-height:1.6;
   }
-  #doc-view:empty::before{content:"No content yet. Tap Edit to add your notes."; color:#9a8a90;}
-  #doc-edit{
-    width:100%; min-height:300px; background:#ffffff; color:#2b0f1c; border-radius:12px;
-    padding:16px; font-size:15px; line-height:1.6; border:1px solid var(--me); font-family:'Inter',sans-serif;
-    resize:vertical; display:none;
+  #empty-state svg{width:48px; height:48px; margin-bottom:10px; color:var(--gold);}
+  #pdf-card{
+    display:none; background:#ffffff; border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    box-shadow:0 4px 14px rgba(44,62,45,0.15);
   }
+  #pdf-toolbar{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px;
+    background:var(--paper-2); border-bottom:1px solid var(--line); font-size:13px; color:var(--ink);
+  }
+  #pdf-toolbar b{font-family:'Merriweather',serif; font-size:13.5px;}
+  #pdf-toolbar a{color:var(--navy); font-weight:600; text-decoration:none;}
+  #pdf-frame{width:100%; height:70vh; border:none; display:block;}
+  #upload-zone{
+    border:2px dashed var(--line); border-radius:12px; padding:32px 18px; text-align:center;
+  }
+  #upload-zone p{color:var(--muted); font-size:13.5px; margin:8px 0 16px;}
+  #upload-btn{
+    background:var(--navy); color:var(--paper); border:none; border-radius:20px; padding:11px 24px;
+    font-weight:600; font-size:14px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  #upload-btn:hover{background:var(--navy-2);}
+  input[type="file"]{display:none;}
   #bottom-bar{
-    position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line);
+    position:fixed; left:0; right:0; bottom:0; background:var(--navy); border-top:3px solid var(--gold);
     padding:12px 16px; display:flex; gap:10px; justify-content:flex-end;
   }
   #bottom-bar button{
     border:none; border-radius:20px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer;
     font-family:'Inter',sans-serif;
   }
-  #edit-btn{background:var(--me); color:var(--ink);}
-  #save-btn{background:var(--me); color:var(--ink); display:none;}
-  #cancel-btn{background:none; color:var(--muted); border:1px solid var(--line) !important; display:none;}
+  #replace-btn{background:var(--gold); color:var(--navy); display:none;}
+  #remove-btn{background:none; color:#e8b4b4; border:1px solid #6b4a4a !important; display:none;}
 </style>
 </head>
 <body>
@@ -86,19 +98,35 @@
 
 <main>
   <div id="status">Loading…</div>
-  <div id="doc-view"></div>
-  <textarea id="doc-edit" placeholder="Type or paste your notes here…"></textarea>
+
+  <div id="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <div>No PDF uploaded yet. Tap Upload below to add your study document — it'll stay here permanently for both of you.</div>
+  </div>
+
+  <div id="pdf-card">
+    <div id="pdf-toolbar">
+      <b id="pdf-name">document.pdf</b>
+      <a id="pdf-open" href="#" target="_blank" rel="noopener">Open full screen ↗</a>
+    </div>
+    <iframe id="pdf-frame"></iframe>
+  </div>
+
+  <div id="upload-zone" style="display:none;">
+    <p>Choose a PDF file to upload — it will be saved permanently and visible to both of you.</p>
+    <button id="upload-btn">📄 Choose PDF</button>
+    <input type="file" id="file-input" accept="application/pdf">
+  </div>
 </main>
 
 <div id="bottom-bar">
-  <button id="cancel-btn">Cancel</button>
-  <button id="edit-btn">✏️ Edit</button>
-  <button id="save-btn">Save</button>
+  <button id="remove-btn">Remove PDF</button>
+  <button id="replace-btn">Replace PDF</button>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBX_xg3MTYFZLR3q6i7Rf2Ikz2Yii4X0MA",
@@ -112,51 +140,76 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  const docRef = ref(db, "jeeDocument/content");
+  const pdfRef = ref(db, "jeePdf");
 
   const statusEl = document.getElementById('status');
-  const viewEl = document.getElementById('doc-view');
-  const editEl = document.getElementById('doc-edit');
-  const editBtn = document.getElementById('edit-btn');
-  const saveBtn = document.getElementById('save-btn');
-  const cancelBtn = document.getElementById('cancel-btn');
+  const emptyState = document.getElementById('empty-state');
+  const pdfCard = document.getElementById('pdf-card');
+  const pdfFrame = document.getElementById('pdf-frame');
+  const pdfName = document.getElementById('pdf-name');
+  const pdfOpen = document.getElementById('pdf-open');
+  const uploadZone = document.getElementById('upload-zone');
+  const uploadBtn = document.getElementById('upload-btn');
+  const fileInput = document.getElementById('file-input');
+  const replaceBtn = document.getElementById('replace-btn');
+  const removeBtn = document.getElementById('remove-btn');
 
-  let currentText = '';
-
-  onValue(docRef, (snapshot)=>{
-    currentText = snapshot.val() || '';
-    viewEl.textContent = currentText;
-    statusEl.textContent = 'Synced';
-    setTimeout(()=>{ statusEl.textContent = ''; }, 1500);
+  onValue(pdfRef, (snapshot)=>{
+    const data = snapshot.val();
+    statusEl.textContent = '';
+    if(data && data.base64){
+      emptyState.style.display = 'none';
+      uploadZone.style.display = 'none';
+      pdfCard.style.display = 'block';
+      pdfFrame.src = data.base64;
+      pdfOpen.href = data.base64;
+      pdfName.textContent = data.name || 'document.pdf';
+      replaceBtn.style.display = 'inline-block';
+      removeBtn.style.display = 'inline-block';
+    } else {
+      pdfCard.style.display = 'none';
+      emptyState.style.display = 'block';
+      uploadZone.style.display = 'block';
+      replaceBtn.style.display = 'none';
+      removeBtn.style.display = 'none';
+    }
   });
 
-  editBtn.onclick = ()=>{
-    editEl.value = currentText;
-    viewEl.style.display = 'none';
-    editEl.style.display = 'block';
-    editBtn.style.display = 'none';
-    saveBtn.style.display = 'inline-block';
-    cancelBtn.style.display = 'inline-block';
-    editEl.focus();
-  };
-
-  cancelBtn.onclick = ()=>{
-    exitEdit();
-  };
-
-  saveBtn.onclick = ()=>{
-    const newText = editEl.value;
-    set(docRef, newText);
-    exitEdit();
-  };
-
-  function exitEdit(){
-    viewEl.style.display = 'block';
-    editEl.style.display = 'none';
-    editBtn.style.display = 'inline-block';
-    saveBtn.style.display = 'none';
-    cancelBtn.style.display = 'none';
+  function triggerUpload(){
+    fileInput.click();
   }
+  uploadBtn.onclick = triggerUpload;
+  replaceBtn.onclick = triggerUpload;
+
+  fileInput.addEventListener('change', ()=>{
+    const file = fileInput.files[0];
+    if(!file) return;
+    if(file.type !== 'application/pdf'){
+      alert('Please choose a PDF file.');
+      return;
+    }
+    const maxBytes = 8 * 1024 * 1024; // 8 MB soft limit
+    if(file.size > maxBytes){
+      alert('This PDF is quite large (' + Math.round(file.size/1024/1024) + ' MB). Please choose a file under 8 MB for reliable syncing.');
+      return;
+    }
+    statusEl.textContent = 'Uploading…';
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      set(pdfRef, { base64: reader.result, name: file.name, time: Date.now() })
+        .then(()=>{ statusEl.textContent = 'Saved'; setTimeout(()=>{statusEl.textContent='';}, 1500); })
+        .catch((err)=>{ statusEl.textContent = 'Upload failed — try a smaller file.'; console.error(err); });
+    };
+    reader.onerror = ()=>{ statusEl.textContent = 'Could not read file.'; };
+    reader.readAsDataURL(file);
+    fileInput.value = '';
+  });
+
+  removeBtn.onclick = ()=>{
+    if(confirm('Remove this PDF for both of you?')){
+      remove(pdfRef);
+    }
+  };
 
   document.getElementById('research-btn').onclick = ()=>{
     window.location.href = 'chat.html';
