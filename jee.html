@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>JEE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3a1526">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#2b0f1c;
+    --panel:#3a1526;
+    --panel-2:#42192c;
+    --line:#5c2439;
+    --cream:#fdece8;
+    --muted:#d99bb3;
+    --me:#e0507a;
+    --signal:#ff6f91;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; color:var(--cream); font-family:'Inter',sans-serif;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,111,145,0.25), transparent 45%),
+      radial-gradient(circle at 80% 30%, rgba(224,80,122,0.2), transparent 50%),
+      linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  header h1{
+    font-family:'Fraunces',serif; font-size:20px; font-weight:600; margin:0; color:var(--me);
+    letter-spacing:0.5px;
+  }
+  #research-btn{
+    display:flex; align-items:center; gap:6px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--cream); padding:8px 14px; border-radius:20px; cursor:pointer; font-size:13.5px;
+    font-family:'Inter',sans-serif; font-weight:600;
+  }
+  #research-btn:hover{border-color:var(--me);}
+  #research-btn svg{width:16px; height:16px;}
+  main{flex:1; overflow-y:auto; padding:20px 16px 90px; display:flex; flex-direction:column; gap:14px;}
+  #status{font-size:12px; color:var(--muted); text-align:center;}
+  #doc-view{
+    background:#ffffff; color:#2b0f1c; border-radius:12px; padding:18px 16px; font-size:15px;
+    line-height:1.6; white-space:pre-wrap; word-break:break-word; min-height:200px;
+    border:1px solid var(--line);
+  }
+  #doc-view:empty::before{content:"No content yet. Tap Edit to add your notes."; color:#9a8a90;}
+  #doc-edit{
+    width:100%; min-height:300px; background:#ffffff; color:#2b0f1c; border-radius:12px;
+    padding:16px; font-size:15px; line-height:1.6; border:1px solid var(--me); font-family:'Inter',sans-serif;
+    resize:vertical; display:none;
+  }
+  #bottom-bar{
+    position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line);
+    padding:12px 16px; display:flex; gap:10px; justify-content:flex-end;
+  }
+  #bottom-bar button{
+    border:none; border-radius:20px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  #edit-btn{background:var(--me); color:var(--ink);}
+  #save-btn{background:var(--me); color:var(--ink); display:none;}
+  #cancel-btn{background:none; color:var(--muted); border:1px solid var(--line) !important; display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>JEE</h1>
+  <button id="research-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    Research
+  </button>
+</header>
+
+<main>
+  <div id="status">Loading…</div>
+  <div id="doc-view"></div>
+  <textarea id="doc-edit" placeholder="Type or paste your notes here…"></textarea>
+</main>
+
+<div id="bottom-bar">
+  <button id="cancel-btn">Cancel</button>
+  <button id="edit-btn">✏️ Edit</button>
+  <button id="save-btn">Save</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBX_xg3MTYFZLR3q6i7Rf2Ikz2Yii4X0MA",
+    authDomain: "study-world-f04f4.firebaseapp.com",
+    databaseURL: "https://study-world-f04f4-default-rtdb.firebaseio.com",
+    projectId: "study-world-f04f4",
+    storageBucket: "study-world-f04f4.firebasestorage.app",
+    messagingSenderId: "458761318304",
+    appId: "1:458761318304:web:d107447cbce7d77273bec5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const docRef = ref(db, "jeeDocument/content");
+
+  const statusEl = document.getElementById('status');
+  const viewEl = document.getElementById('doc-view');
+  const editEl = document.getElementById('doc-edit');
+  const editBtn = document.getElementById('edit-btn');
+  const saveBtn = document.getElementById('save-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+
+  let currentText = '';
+
+  onValue(docRef, (snapshot)=>{
+    currentText = snapshot.val() || '';
+    viewEl.textContent = currentText;
+    statusEl.textContent = 'Synced';
+    setTimeout(()=>{ statusEl.textContent = ''; }, 1500);
+  });
+
+  editBtn.onclick = ()=>{
+    editEl.value = currentText;
+    viewEl.style.display = 'none';
+    editEl.style.display = 'block';
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'inline-block';
+    editEl.focus();
+  };
+
+  cancelBtn.onclick = ()=>{
+    exitEdit();
+  };
+
+  saveBtn.onclick = ()=>{
+    const newText = editEl.value;
+    set(docRef, newText);
+    exitEdit();
+  };
+
+  function exitEdit(){
+    viewEl.style.display = 'block';
+    editEl.style.display = 'none';
+    editBtn.style.display = 'inline-block';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+  }
+
+  document.getElementById('research-btn').onclick = ()=>{
+    window.location.href = 'index.html';
+  };
+</script>
+</body>
+</html>
