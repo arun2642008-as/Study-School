@@ -335,3 +335,25 @@ actDelete.onclick = ()=>{
 };
 
 init();
+#jee-nav-btn{
+  background:none;
+  border:1px solid var(--line);
+  color:var(--muted);
+  border-radius:10px;
+  width:36px;
+  height:36px;
+  cursor:pointer;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px;
+}
+#jee-nav-btn svg{
+  width:100%;
+  height:100%;
+}
+#jee-nav-btn:hover{
+  border-color:var(--me);
+  color:var(--me);
+}
