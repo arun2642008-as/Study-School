@@ -27,6 +27,9 @@
       linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
     background-attachment:fixed;
   }
+  @supports (height: 100dvh){
+    body{ height:100dvh; }
+  }
   header{
     display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
     background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0;
@@ -41,11 +44,14 @@
   }
   #jee-nav-btn svg, #ig-btn svg{width:100%; height:100%;}
   #jee-nav-btn:hover, #ig-btn:hover{border-color:var(--me); color:var(--me);}
-  #feed{flex:1; overflow-y:auto; padding:18px 14px 8px; display:flex; flex-direction:column; gap:14px;}
+  #feed{
+    flex:1 1 auto; min-height:0; overflow-y:auto; padding:18px 14px 8px;
+    display:flex; flex-direction:column; gap:14px;
+  }
   .empty{margin:auto; text-align:center; color:var(--muted); font-size:13px; max-width:220px; line-height:1.6;}
-  .row{display:flex; flex-direction:column; max-width:78%;}
-  .row.mine{align-self:flex-end; align-items:flex-end;}
-  .row.theirs{align-self:flex-start; align-items:flex-start;}
+  .row{display:flex; flex-direction:column; max-width:78%; width:fit-content;}
+  .row.mine{margin-left:auto; margin-right:0; align-items:flex-end;}
+  .row.theirs{margin-right:auto; margin-left:0; align-items:flex-start;}
   .bubble{padding:10px 13px; border-radius:14px; font-size:14.5px; line-height:1.45; word-break:break-word; white-space:pre-wrap; cursor:pointer;}
   .row.mine .bubble{background:#fff; color:#2b0f1c; border:1px solid var(--me); border-bottom-right-radius:4px;}
   .row.theirs .bubble{background:#fff; color:#2b0f1c; border:1px solid var(--them); border-bottom-left-radius:4px;}
@@ -61,7 +67,10 @@
   .reactions .rchip{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:1px 7px; font-size:12px; display:flex; align-items:center; gap:3px;}
   .reactions .rchip.mine-r{border-color:var(--me);}
   .reactions .rchip .rcount{font-size:10px; color:var(--muted);}
-  #bar{background:var(--panel); border-top:1px solid var(--line); padding:10px 12px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0; position:relative;}
+  #bar{
+    background:var(--panel); border-top:1px solid var(--line); padding:10px 12px;
+    display:flex; align-items:flex-end; gap:8px; flex:0 0 auto; position:relative;
+  }
   #bar button.icon{background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; width:34px; height:34px; flex-shrink:0; border-radius:8px;}
   #edit-banner{position:absolute; bottom:100%; left:0; right:0; background:var(--panel-2); border-top:1px solid var(--line); padding:8px 14px; display:none; align-items:center; justify-content:space-between; font-size:12.5px; color:var(--muted);}
   #edit-banner.open{display:flex;}
@@ -152,7 +161,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBX_xg3MTYFZLR3q6i7Rf2Ikz2Yii4X0MA",
@@ -181,8 +190,6 @@
   "🔥","🍀","🌸","🌺","🌻","🦋","🐶","🐱","🦄","🐼","🎶","🎵","🎧","📸","📷","🎥","💃","🕺","🥂","🍕",
   "🍔","🍟","🍩","🍦","☕","🍾","🥺","😌","😏","🤤","🫶","🫡","🥹","😮‍💨","🤌","🧡","💛","💚","💙","💜"];
 
-  // Invisible device identity — no name entry, no UI, just used internally
-  // to tell "your" messages apart from "their" messages for alignment/permissions.
   function getCookie(k){ const m = document.cookie.match(new RegExp('(^| )'+k+'=([^;]+)')); return m?decodeURIComponent(m[2]):null; }
   function setCookie(k,v){ document.cookie = k+'='+encodeURIComponent(v)+';max-age=31536000;path=/'; }
   let myId = getCookie('deviceId');
@@ -191,9 +198,19 @@
     setCookie('deviceId', myId);
   }
 
+  // IMPORTANT: order comes from Firebase's own push-key order (snapshot.forEach),
+  // NOT from each device's local clock — different phones can have slightly
+  // different clocks, which was scrambling message order before.
   onValue(messagesRef, (snapshot)=>{
-    currentMessages = snapshot.val() || {};
-    render(currentMessages);
+    const list = [];
+    const map = {};
+    snapshot.forEach(child=>{
+      const val = { ...child.val(), id: child.key };
+      list.push(val);
+      map[child.key] = val;
+    });
+    currentMessages = map;
+    render(list);
   });
 
   function linkify(str){ return str.replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`); }
@@ -214,8 +231,7 @@
     return html + '</div>';
   }
 
-  function render(messagesObj){
-    const list = Object.entries(messagesObj).map(([id,m])=>({...m,id})).sort((a,b)=>a.time-b.time);
+  function render(list){
     if(list.length===0){ feed.innerHTML = '<div class="empty">No messages yet. Say hello — this line only exists between the two of you.</div>'; return; }
     feed.innerHTML = '';
     list.forEach(m=>{
@@ -242,7 +258,7 @@
       }
       const meta = document.createElement('div');
       meta.className = 'meta';
-      const d = new Date(m.time);
+      const d = new Date(m.time || Date.now());
       meta.innerHTML = d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) + (m.edited && !m.deleted ? ' <i>· edited</i>' : '');
       row.appendChild(meta);
       feed.appendChild(row);
