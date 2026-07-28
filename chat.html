@@ -32,18 +32,19 @@
   }
   header{
     display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
-    background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0;
+    background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0; gap:8px;
   }
-  .wire{flex:1; display:flex; align-items:center; justify-content:center; gap:4px; margin:0 14px;}
+  .wire{flex:1; display:flex; align-items:center; justify-content:center; gap:4px; margin:0 8px;}
   .wire .dash{flex:1; height:1px; background:repeating-linear-gradient(90deg,var(--line) 0 4px, transparent 4px 8px);}
   .wire .pulse{width:7px; height:7px; border-radius:50%; background:var(--signal); flex-shrink:0; animation:pulse 2.4s infinite;}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,162,39,0.55);} 70%{box-shadow:0 0 0 8px rgba(201,162,39,0);} 100%{box-shadow:0 0 0 0 rgba(201,162,39,0);}}
-  #jee-nav-btn, #ig-btn{
+  #jee-nav-btn, #ig-btn, #notif-btn{
     background:none; border:1px solid var(--line); color:var(--muted); border-radius:10px;
     width:36px; height:36px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:7px;
   }
-  #jee-nav-btn svg, #ig-btn svg{width:100%; height:100%;}
-  #jee-nav-btn:hover, #ig-btn:hover{border-color:var(--me); color:var(--me);}
+  #jee-nav-btn svg, #ig-btn svg, #notif-btn svg{width:100%; height:100%;}
+  #jee-nav-btn:hover, #ig-btn:hover, #notif-btn:hover{border-color:var(--me); color:var(--me);}
+  #notif-btn.on{border-color:var(--signal); color:var(--signal);}
   #feed{
     flex:1 1 auto; min-height:0; overflow-y:auto; padding:18px 14px 8px;
     display:flex; flex-direction:column; gap:14px;
@@ -126,6 +127,12 @@
       <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/>
     </svg>
   </button>
+  <button id="notif-btn" title="Enable notifications">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  </button>
 </header>
 
 <div id="feed"><div class="empty">No messages yet. Say hello — this line only exists between the two of you.</div></div>
@@ -161,7 +168,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBX_xg3MTYFZLR3q6i7Rf2Ikz2Yii4X0MA",
@@ -198,9 +205,50 @@
     setCookie('deviceId', myId);
   }
 
-  // IMPORTANT: order comes from Firebase's own push-key order (snapshot.forEach),
-  // NOT from each device's local clock — different phones can have slightly
-  // different clocks, which was scrambling message order before.
+  // ---- in-app notifications (no server needed; works while app is open/minimized) ----
+  const notifBtn = document.getElementById('notif-btn');
+  let hasLoadedOnce = false;
+  let lastMessageIds = new Set();
+
+  function updateNotifBtn(){
+    if(Notification.permission === 'granted'){ notifBtn.classList.add('on'); }
+    else{ notifBtn.classList.remove('on'); }
+  }
+  if('Notification' in window) updateNotifBtn();
+
+  notifBtn.onclick = ()=>{
+    if(!('Notification' in window)){ alert('Notifications are not supported on this browser.'); return; }
+    if(Notification.permission === 'granted'){ alert('Notifications are already on.'); return; }
+    Notification.requestPermission().then(updateNotifBtn);
+  };
+
+  function playBeep(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.18);
+    }catch(e){}
+  }
+
+  function notifyNewMessage(m){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    playBeep();
+    let body = m.type === 'text' ? m.content : (m.caption || 'Sent an attachment');
+    if(body && body.length > 80) body = body.slice(0,80) + '…';
+    try{
+      const n = new Notification('New message — Private Line', { body: body || 'New message', icon: 'icon-192.png' });
+      n.onclick = ()=>{ window.focus(); n.close(); };
+    }catch(e){}
+  }
+
+  // order comes from Firebase's own push-key order (snapshot.forEach),
+  // not from each device's local clock, to avoid message-order bugs.
   onValue(messagesRef, (snapshot)=>{
     const list = [];
     const map = {};
@@ -210,6 +258,17 @@
       map[child.key] = val;
     });
     currentMessages = map;
+
+    if(hasLoadedOnce){
+      list.forEach(m=>{
+        if(!lastMessageIds.has(m.id) && m.sender !== myId && !m.deleted){
+          notifyNewMessage(m);
+        }
+      });
+    }
+    lastMessageIds = new Set(list.map(m=>m.id));
+    hasLoadedOnce = true;
+
     render(list);
   });
 
