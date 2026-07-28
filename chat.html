@@ -15,20 +15,18 @@
     --cream:#fdece8; --muted:#d99bb3; --me:#e0507a; --me-soft:#5c2039;
     --them:#e8879e; --them-soft:#4a1c2f; --signal:#ff6f91;
   }
+  :root{ --vh: 1vh; }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
     margin:0; color:var(--cream); font-family:'Inter',sans-serif;
-    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    display:flex; flex-direction:column; height:calc(var(--vh, 1vh) * 100); overflow:hidden;
     background:
       radial-gradient(circle at 20% 20%, rgba(255,111,145,0.25), transparent 45%),
       radial-gradient(circle at 80% 30%, rgba(224,80,122,0.2), transparent 50%),
       radial-gradient(circle at 50% 90%, rgba(255,140,170,0.18), transparent 55%),
       linear-gradient(160deg, #2b0f1c 0%, #3a1526 50%, #2b0f1c 100%);
     background-attachment:fixed;
-  }
-  @supports (height: 100dvh){
-    body{ height:100dvh; }
   }
   header{
     display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
